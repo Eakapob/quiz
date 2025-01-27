@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../App.css";
 import silde1 from "../Asset/ห้องแห่งความลับ.jpg";
 import silde2 from "../Asset/ศิลาอาถรรพ์.jpg";
@@ -14,14 +14,21 @@ function Document() {
   const [cart, setCart] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
-  const products = [
-    { id: 1, name: "Harry Potter 1", price: 100, image: silde1 },
-    { id: 2, name: "Harry Potter 2", price: 120, image: silde2 },
-    { id: 3, name: "Harry Potter 3", price: 150, image: silde3 },
-  ];
+  const [newBook, setNewBook] = useState({ name: "", price: "", image: "" });
+  const [showAddBookModal, setShowAddBookModal] = useState(false);
+
+  useEffect(() => {
+    fetch("http://localhost:3001/bookstores")
+      .then((response) => response.json())
+      .then((data) => {
+        setProducts(data);
+      })
+      .catch((error) => console.error("Error fetching products:", error));
+  }, []);
 
   const handleAddToCart = (product) => {
     setSelectedProduct(product);
@@ -41,6 +48,56 @@ function Document() {
     }
     setCart(updatedCart);
     setShowModal(false);
+  };
+
+  // เพิ่มหนังสือ
+  const handleAddNewBook = async (newBook) => {
+    try {
+      const formData = new FormData();
+      formData.append("name", newBook.name);
+      formData.append("price", newBook.price);
+  
+      if (newBook.image && newBook.image instanceof File) {
+        // Append the raw file directly to FormData
+        formData.append("image", newBook.image);
+      } else {
+        console.error("The image is not valid.");
+        return;
+      }
+  
+      // Send the formData to the server
+      const response = await fetch("http://localhost:3001/bookstores", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to add book: ${response.statusText}`);
+      }
+  
+      const data = await response.json();
+      console.log("Book added successfully:", data);
+    } catch (error) {
+      console.error("Error adding new book:", error);
+    }
+  };
+
+  const sendBookData = async (formData) => {
+    try {
+      const response = await fetch("http://localhost:3001/bookstores", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to add book: ${response.statusText}`);
+      }
+  
+      const data = await response.json();
+      console.log("Book added successfully:", data);
+    } catch (error) {
+      console.error("Error uploading book:", error);
+    }
   };
 
   const goToCartPage = () => {
@@ -97,11 +154,21 @@ function Document() {
             </div>
           ))}
         </div>
+
+        {/* ปุ่มเพิ่มหนังสือ */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowAddBookModal(true)}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg"
+          >
+            Add New Book
+          </button>
+        </div>
       </main>
 
       {/* Modal */}
       {showModal && selectedProduct && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
           <div className="bg-white p-6 rounded-lg">
             <h2 className="text-xl font-bold">
               Add {selectedProduct.name} to Cart
@@ -128,6 +195,67 @@ function Document() {
                 onClick={confirmAddToCart}
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* modal เพิ่มหนังสือ */}
+      {showAddBookModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+          <div className="bg-white p-6 rounded-lg">
+            <h2 className="text-xl font-bold">Add New Book</h2>
+            <div className="mt-4">
+              <label className="block text-sm font-medium">Book Name</label>
+              <input
+                type="text"
+                className="border rounded w-full mt-1 p-2"
+                value={newBook.name}
+                onChange={(e) =>
+                  setNewBook({ ...newBook, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium">Price</label>
+              <input
+                type="number"
+                className="border rounded w-full mt-1 p-2"
+                value={newBook.price}
+                onChange={(e) =>
+                  setNewBook({ ...newBook, price: e.target.value })
+                }
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium">Image URL</label>
+              <input
+                type="file"
+                className="border rounded w-full mt-1 p-2"
+                onChange={(e) => {
+                  const file = e.target.files[0]; // Get the selected file
+                  if (file) {
+                    setNewBook({ ...newBook, image: file });
+                  }
+                }}
+              />
+            </div>
+            <div className="mt-6 flex justify-end space-x-4">
+              <button
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                onClick={() => setShowAddBookModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-lg"
+                onClick={() => {
+                  handleAddNewBook(newBook);
+                  setShowAddBookModal(false); // Close the modal after adding the book
+                }}
+              >
+                Add Book
               </button>
             </div>
           </div>
