@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "../App.css";
-import silde1 from "../Asset/ห้องแห่งความลับ.jpg";
-import silde2 from "../Asset/ศิลาอาถรรพ์.jpg";
-import silde3 from "../Asset/นักโทษแห่งอัซคาบัน.jpg";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { Navigation, Pagination } from "swiper/modules";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Document() {
   const [cart, setCart] = useState([]);
@@ -21,11 +19,29 @@ function Document() {
   const [newBook, setNewBook] = useState({ name: "", price: "", image: "" });
   const [showAddBookModal, setShowAddBookModal] = useState(false);
 
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [updatedData, setUpdatedData] = useState({
+    name: "",
+    price: "",
+    image: null,
+  });
+
   useEffect(() => {
-    fetch("http://localhost:3001/bookstores")
-      .then((response) => response.json())
-      .then((data) => {
-        setProducts(data);
+    axios
+      .get("http://localhost:3001/bookstores")
+      .then((response) => {
+        setProducts(response.data);
+      })
+      .catch((error) => console.error("Error fetching products:", error));
+  }, []);
+
+  //check image
+  useEffect(() => {
+    axios
+      .get("http://localhost:3001/bookstores")
+      .then((response) => {
+        console.log("Products from API:", response.data); // ตรวจสอบค่าที่ได้จาก API
+        setProducts(response.data);
       })
       .catch((error) => console.error("Error fetching products:", error));
   }, []);
@@ -47,56 +63,103 @@ function Document() {
       updatedCart.push({ ...selectedProduct, quantity });
     }
     setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart)); // บันทึกลง localStorage ทันที
     setShowModal(false);
   };
 
-  // เพิ่มหนังสือ
   const handleAddNewBook = async (newBook) => {
     try {
-      const formData = new FormData();
-      formData.append("name", newBook.name);
-      formData.append("price", newBook.price);
-  
-      if (newBook.image && newBook.image instanceof File) {
-        // Append the raw file directly to FormData
-        formData.append("image", newBook.image);
-      } else {
-        console.error("The image is not valid.");
-        return;
-      }
-  
-      // Send the formData to the server
-      const response = await fetch("http://localhost:3001/bookstores", {
-        method: "POST",
-        body: formData,
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Failed to add book: ${response.statusText}`);
-      }
-  
-      const data = await response.json();
-      console.log("Book added successfully:", data);
+      const response = await axios.post(
+        "http://localhost:3001/bookstores/upload",
+        {
+          name: newBook.name,
+          price: newBook.price,
+          image: newBook.image, // ส่ง URL ของภาพ
+        }
+      );
+
+      console.log("Book added successfully:", response.data);
     } catch (error) {
       console.error("Error adding new book:", error);
     }
   };
 
-  const sendBookData = async (formData) => {
+  const handleEditClick = (product) => {
+    setEditingProduct(product);
+    setUpdatedData({ name: product.name, price: product.price, image: null });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingProduct) return;
+
     try {
-      const response = await fetch("http://localhost:3001/bookstores", {
-        method: "POST",
-        body: formData,
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Failed to add book: ${response.statusText}`);
-      }
-  
-      const data = await response.json();
-      console.log("Book added successfully:", data);
+      const response = await axios.put(
+        `http://localhost:3001/bookstores/${editingProduct.id}`,
+        {
+          name: updatedData.name,
+          price: updatedData.price,
+          image: updatedData.image,
+        }
+      );
+
+      alert("Product updated successfully!");
+      setEditingProduct(null);
+
+      // รีเฟรชข้อมูลหลังอัปเดต
+      const fetchProducts = async () => {
+        const response = await axios.get("http://localhost:3001/bookstores");
+        setProducts(response.data);
+      };
+      fetchProducts();
     } catch (error) {
-      console.error("Error uploading book:", error);
+      console.error("Failed to update product:", error);
+      alert("Failed to update product.");
+    }
+  };
+
+  // ดึงข้อมูลตะกร้าจาก localStorage เมื่อโหลดหน้าเว็บ
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart)); // ตรวจสอบว่าพาร์ส JSON ได้
+      } catch (error) {
+        console.error("Error parsing cart from localStorage:", error);
+        setCart([]); // ตั้งค่าเป็น array ว่างถ้าเกิด error
+      }
+    }
+  }, []);
+
+  // บันทึกข้อมูลตะกร้าใน localStorage เมื่อ cart เปลี่ยนแปลง
+  useEffect(() => {
+    if (cart.length > 0) {
+      localStorage.setItem("cart", JSON.stringify(cart));
+    }
+  }, [cart]);
+
+  // ฟังก์ชันบันทึกข้อมูลตะกร้าใน localStorage
+  // const saveCartToLocalStorage = (cart) => {
+  //   localStorage.setItem("cart", JSON.stringify(cart));
+  // };
+
+  // ฟังก์ชันดึงข้อมูลตะกร้าจาก localStorage
+  // const loadCartFromLocalStorage = () => {
+  //   const cart = localStorage.getItem("cart");
+  //   return cart ? JSON.parse(cart) : [];
+  // };
+
+  // ฟังก์ชันลบสินค้าออกจากตะกร้า
+  const handleDeleteProduct = async (productId) => {
+
+    console.log("Deleting product with ID:", productId);
+
+    try {
+      await axios.delete(`http://localhost:3001/bookstores/${productId}`);
+      setProducts(products.filter((product) => parseInt(product.id, 10) !== parseInt(productId, 10)));
+      alert("Product deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      alert("Failed to delete product.");
     }
   };
 
@@ -139,7 +202,7 @@ function Document() {
           {products.map((product) => (
             <div className="p-4 border rounded-lg" key={product.id}>
               <img
-                src={product.image}
+                src={`/images/${product.image_data || "default-image.jpg"}`}
                 alt={product.name}
                 className="w-full h-40 object-cover"
               />
@@ -151,8 +214,66 @@ function Document() {
               >
                 Add to Cart
               </button>
+              <button
+                className="mt-2 bg-blue-500 text-white py-1 px-4 rounded-lg ml-2"
+                onClick={() => handleEditClick(product)}
+              >
+                Update
+              </button>
+              <button
+                className="mt-2 bg-red-500 text-white py-1 px-4 rounded-lg"
+                onClick={() => handleDeleteProduct(product.id)}
+              >
+                Delete
+              </button>
             </div>
           ))}
+          {editingProduct && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-white p-6 rounded-lg">
+                <h2 className="text-lg font-bold mb-2">Edit Product</h2>
+                <input
+                  type="text"
+                  value={updatedData.name}
+                  onChange={(e) =>
+                    setUpdatedData({ ...updatedData, name: e.target.value })
+                  }
+                  className="border p-2 w-full mb-2"
+                  placeholder="Product Name"
+                />
+                <input
+                  type="number"
+                  value={updatedData.price}
+                  onChange={(e) =>
+                    setUpdatedData({ ...updatedData, price: e.target.value })
+                  }
+                  className="border p-2 w-full mb-2"
+                  placeholder="Price"
+                />
+                <input
+                  type="text"
+                  value={updatedData.image}
+                  onChange={(e) =>
+                    setUpdatedData({ ...updatedData, image: e.target.value })
+                  }
+                  className="border p-2 w-full mb-2"
+                  placeholder="Enter image file name"
+                />
+                <button
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg mr-2"
+                  onClick={handleUpdate}
+                >
+                  Save
+                </button>
+                <button
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                  onClick={() => setEditingProduct(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ปุ่มเพิ่มหนังสือ */}
@@ -166,7 +287,7 @@ function Document() {
         </div>
       </main>
 
-      {/* Modal */}
+      {/* Modal เพิ่มในตะกร้า*/}
       {showModal && selectedProduct && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
           <div className="bg-white p-6 rounded-lg">
@@ -229,16 +350,16 @@ function Document() {
               />
             </div>
             <div className="mt-4">
-              <label className="block text-sm font-medium">Image URL</label>
+              <label className="block text-sm font-medium">
+                Image File Name
+              </label>
               <input
-                type="file"
+                type="text"
                 className="border rounded w-full mt-1 p-2"
-                onChange={(e) => {
-                  const file = e.target.files[0]; // Get the selected file
-                  if (file) {
-                    setNewBook({ ...newBook, image: file });
-                  }
-                }}
+                value={newBook.image}
+                onChange={(e) =>
+                  setNewBook({ ...newBook, image: e.target.value })
+                }
               />
             </div>
             <div className="mt-6 flex justify-end space-x-4">

@@ -46,7 +46,7 @@ function Cart() {
                   className="flex items-center border p-4 rounded-lg"
                 >
                   <img
-                    src={item.image}
+                    src={`/images/${item.image_data || "default-image.jpg"}`}
                     alt={item.name}
                     className="w-20 h-20 object-cover rounded-lg"
                   />
