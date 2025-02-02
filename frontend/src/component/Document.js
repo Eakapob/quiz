@@ -26,6 +26,14 @@ function Document() {
     image: null,
   });
 
+  const itemsPerPage = 8;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = products.slice(indexOfFirstItem, indexOfLastItem);
+
   useEffect(() => {
     axios
       .get("http://localhost:3001/bookstores")
@@ -86,7 +94,11 @@ function Document() {
 
   const handleEditClick = (product) => {
     setEditingProduct(product);
-    setUpdatedData({ name: product.name, price: product.price, image: null });
+    setUpdatedData({
+      name: product.name,
+      price: product.price,
+      image: product.image_data,
+    });
   };
 
   const handleUpdate = async () => {
@@ -150,12 +162,15 @@ function Document() {
 
   // ฟังก์ชันลบสินค้าออกจากตะกร้า
   const handleDeleteProduct = async (productId) => {
-
     console.log("Deleting product with ID:", productId);
 
     try {
       await axios.delete(`http://localhost:3001/bookstores/${productId}`);
-      setProducts(products.filter((product) => parseInt(product.id, 10) !== parseInt(productId, 10)));
+      setProducts(
+        products.filter(
+          (product) => parseInt(product.id, 10) !== parseInt(productId, 10)
+        )
+      );
       alert("Product deleted successfully!");
     } catch (error) {
       console.error("Failed to delete product:", error);
@@ -168,9 +183,9 @@ function Document() {
   };
 
   return (
-    <div className="Document">
+    <div className="cart bg-sky-50 min-h-screen p-8">
       <header>
-        <nav className="bg-sky-100 border-gray-200">
+        <nav className="bg-sky-100 border-gray-200 mb-6">
           <div className="flex justify-between items-center p-4">
             <h1 className="text-xl font-bold">Book Store</h1>
             <button
@@ -183,8 +198,8 @@ function Document() {
         </nav>
       </header>
 
-      <main className="mt-10 ml-20 mr-20">
-        <Swiper
+      <main className="bg-white p-6 rounded-lg shadow-lg">
+        {/* <Swiper
           className="default-carousel"
           loop={true}
           pagination={{ clickable: true }}
@@ -196,15 +211,15 @@ function Document() {
               <img src={product.image} alt={product.name} />
             </SwiperSlide>
           ))}
-        </Swiper>
+        </Swiper> */}
 
-        <div className="grid grid-cols-3 gap-4 mt-10">
-          {products.map((product) => (
+        <div className="grid grid-cols-4 gap-4 mt-10">
+          {currentProducts.map((product) => (
             <div className="p-4 border rounded-lg" key={product.id}>
               <img
                 src={`/images/${product.image_data || "default-image.jpg"}`}
                 alt={product.name}
-                className="w-full h-40 object-cover"
+                className="w-full h-[450px] object-contain"
               />
               <h3 className="text-lg font-bold mt-2">{product.name}</h3>
               <p className="text-sm text-gray-500">฿{product.price}</p>
@@ -276,6 +291,39 @@ function Document() {
           )}
         </div>
 
+        {/* pagination */}
+        <div className="flex justify-center mt-4 space-x-2">
+          <button
+            className="px-4 py-2 bg-gray-300 rounded-lg disabled:opacity-50"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+              onClick={() => setCurrentPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            className="px-4 py-2 bg-gray-300 rounded-lg disabled:opacity-50"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+
         {/* ปุ่มเพิ่มหนังสือ */}
         <div className="flex justify-end mb-4">
           <button
@@ -325,44 +373,38 @@ function Document() {
       {/* modal เพิ่มหนังสือ */}
       {showAddBookModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="bg-white p-6 rounded-lg">
-            <h2 className="text-xl font-bold">Add New Book</h2>
-            <div className="mt-4">
-              <label className="block text-sm font-medium">Book Name</label>
+          <div className="bg-white p-6 rounded-lg w-96 max-w-md">
+            <h2 className="text-xl font-bold mb-2">Add New Book</h2>
+            <div className="space-y-2">
               <input
                 type="text"
-                className="border rounded w-full mt-1 p-2"
+                className="border p-2 w-full"
                 value={newBook.name}
                 onChange={(e) =>
                   setNewBook({ ...newBook, name: e.target.value })
                 }
+                placeholder="Book Name"
               />
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium">Price</label>
               <input
                 type="number"
-                className="border rounded w-full mt-1 p-2"
+                className="border p-2 w-full"
                 value={newBook.price}
                 onChange={(e) =>
                   setNewBook({ ...newBook, price: e.target.value })
                 }
+                placeholder="Price"
               />
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium">
-                Image File Name
-              </label>
               <input
                 type="text"
-                className="border rounded w-full mt-1 p-2"
+                className="border p-2 w-full"
                 value={newBook.image}
                 onChange={(e) =>
                   setNewBook({ ...newBook, image: e.target.value })
                 }
+                placeholder="Enter image file name"
               />
             </div>
-            <div className="mt-6 flex justify-end space-x-4">
+            <div className="mt-4 flex justify-end space-x-4">
               <button
                 className="bg-gray-500 text-white px-4 py-2 rounded-lg"
                 onClick={() => setShowAddBookModal(false)}
@@ -373,7 +415,7 @@ function Document() {
                 className="bg-green-500 text-white px-4 py-2 rounded-lg"
                 onClick={() => {
                   handleAddNewBook(newBook);
-                  setShowAddBookModal(false); // Close the modal after adding the book
+                  setShowAddBookModal(false);
                 }}
               >
                 Add Book
