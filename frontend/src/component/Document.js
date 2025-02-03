@@ -6,6 +6,8 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { Navigation, Pagination } from "swiper/modules";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Trash } from "lucide-react";
+
 import axios from "axios";
 
 function Document() {
@@ -223,24 +225,26 @@ function Document() {
               />
               <h3 className="text-lg font-bold mt-2">{product.name}</h3>
               <p className="text-sm text-gray-500">฿{product.price}</p>
-              <button
-                className="mt-2 bg-orange-500 text-white py-1 px-4 rounded-lg"
-                onClick={() => handleAddToCart(product)}
-              >
-                Add to Cart
-              </button>
-              <button
-                className="mt-2 bg-blue-500 text-white py-1 px-4 rounded-lg ml-2"
-                onClick={() => handleEditClick(product)}
-              >
-                Update
-              </button>
-              <button
-                className="mt-2 bg-red-500 text-white py-1 px-4 rounded-lg"
-                onClick={() => handleDeleteProduct(product.id)}
-              >
-                Delete
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  className="mt-2 bg-orange-500 text-white py-2 px-4 rounded-lg w-full"
+                  onClick={() => handleAddToCart(product)}
+                >
+                  Add to Cart
+                </button>
+                <button
+                  className="mt-2 bg-blue-500 text-white py-2 px-4 rounded-lg w-1/2 flex items-center justify-center"
+                  onClick={() => handleEditClick(product)}
+                >
+                  <Pencil size={18} />
+                </button>
+                <button
+                  className="mt-2 bg-red-500 text-white py-2 px-4 rounded-lg w-1/2 flex items-center justify-center"
+                  onClick={() => handleDeleteProduct(product.id)}
+                >
+                  <Trash size={18} />
+                </button>
+              </div>
             </div>
           ))}
           {editingProduct && (
