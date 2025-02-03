@@ -55,4 +55,18 @@ npm start
 3. เปิดเบราว์เซอร์และเข้าใช้งานที่ `http://localhost:3000`
 
 ---
+โครงสร้างฐานข้อมูล (bookstore)
+
+ตาราง products มีคอลัมน์ดังนี้:
+
+
+id = AUTO_INCREMENT = รหัสสินค้า (Primary Key)
+
+name = VARCHAR = ชื่อสินค้า
+
+price = INT = ราคาสินค้า
+
+image_data = VARCHAR = ชื่อไฟล์รูปภาพ (เช่น HisDarkMaterials.jpg)
+
+รูปภาพจะถูกเก็บไว้ที่โฟลเดอร์ public/images/ และจะเรียกใช้โดยการใส่เพียงชื่อไฟล์ เช่น HisDarkMaterials.jpg
 
